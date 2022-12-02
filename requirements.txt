@@ -1,1 +1,3 @@
 datajoint>=0.13.0
+element-lab @ git+https://github.com/datajoint/element-lab.git@new-project-schema
+element-animal @ git+https://github.com/datajoint/element-animal.git

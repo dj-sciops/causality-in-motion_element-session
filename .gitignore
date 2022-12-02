@@ -113,3 +113,6 @@ dj_local_conf_old.json
 **/.#*
 
 .DS_Store
+scratch*.py
+.vscode/
+*.code-workspace

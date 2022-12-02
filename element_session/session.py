@@ -1,51 +1,20 @@
 import datajoint as dj
-import importlib
-import inspect
+from element_animal import subject
+from element_lab import lab, project
 
-schema = dj.schema()
+from element_session import DB_PREFIX
 
-_linking_module = None
+# TODO: These need to be activated from the forks of the element_lab and element_animal modules
+lab.activate(f"{DB_PREFIX}lab")
+Lab = lab.Lab
+User = lab.User
+Protocol = lab.Protocol
+project.activate(f"{DB_PREFIX}project", linking_module=__name__)
+Source = lab.Source
+subject.activate(f"{DB_PREFIX}subject", linking_module=__name__)
 
 
-def activate(
-    schema_name,
-    create_schema: bool = True,
-    create_tables: bool = True,
-    linking_module: str = None,
-):
-    """Activate this schema.
-
-    Args:
-        schema_name (str): schema name on the database server
-        create_schema (bool): when True (default), create schema in the database if it
-                            does not yet exist.
-        create_tables (str): when True (default), create schema tables in the database
-                             if they do not yet exist.
-        linking_module (str): a module (or name) containing the required dependencies.
-
-    Dependencies:
-    Upstream tables:
-        Subject: the subject with which an experimental session is associated
-        Project: the project with which experimental sessions are associated
-        Experimenter: the experimenter(s) participating in a given session
-                      To supply from element-lab add `Experimenter = lab.User`
-                      to your `workflow/pipeline.py` before `session.activate()`
-    """
-    if isinstance(linking_module, str):
-        linking_module = importlib.import_module(linking_module)
-    assert inspect.ismodule(
-        linking_module
-    ), "The argument 'dependency' must be a module's name or a module"
-
-    global _linking_module
-    _linking_module = linking_module
-
-    schema.activate(
-        schema_name,
-        create_schema=create_schema,
-        create_tables=create_tables,
-        add_objects=linking_module.__dict__,
-    )
+schema = dj.schema(f"{DB_PREFIX}session")
 
 
 @schema
@@ -54,12 +23,18 @@ class Session(dj.Manual):
 
     Attributes:
         Subject (foreign key): Key for Subject table
+        session_id ( VARCHAR(16) ): Unique numeric session ID
         session_datetime (datetime): date and time of the session
+        session_type( VARCHAR(32) ): type of session, e.g. 'behavior', 'ephys', 'training', 'recording'
     """
 
     definition = """
-    -> Subject
-    session_datetime: datetime
+    # Top-level, singular, discrete instance of an experiment or task run
+    -> subject.Subject
+    session_id                               : VARCHAR(16)                 # session number or other identifier
+    ---
+    session_datetime=NULL                    : DATETIME                    # beginning of a session as a microsecond precision datetime
+    session_type=NULL                        : VARCHAR(32)                 # type of session, e.g. 'behavior', 'ephys', 'training', 'recording'
     """
 
     class Attribute(dj.Part):
@@ -103,13 +78,13 @@ class SessionExperimenter(dj.Manual):
 
     Attributes:
         Session (foreign key): Key for Session table
-        Experimenter (foreign key): Key for Experimenter table
+        User (foreign key): Key for User table
     """
 
     definition = """
     # Individual(s) conducting the session
     -> Session
-    -> Experimenter
+    -> lab.User
     """
 
 
@@ -119,7 +94,7 @@ class SessionNote(dj.Manual):
 
     Attributes:
         Session (foreign key): Key for Session table
-        session_note ( varchar(1024) ): Additional notes
+        session_note ( varchar(1024) ): : Additional notes
     """
 
     definition = """
@@ -139,6 +114,6 @@ class ProjectSession(dj.Manual):
     """
 
     definition = """
-    -> Project
+    -> project.Project
     -> Session
     """
