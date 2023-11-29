@@ -76,7 +76,7 @@ class Session(dj.Manual):
         Attributes:
             Session (foreign key): Key for Session table
             attribute_name ( varchar(32) ): Name shared across instances of attribute
-            attribute_value ( varchar(2000), optional ):  Attribute value
+            attribute_value ( varchar(16250), optional ):  Attribute value
             attribute_blob (longblob, optional): Optional data store field
         """
 
@@ -84,7 +84,7 @@ class Session(dj.Manual):
         -> master
         attribute_name: varchar(32)
         ---
-        attribute_value='': varchar(2000)
+        attribute_value='': varchar(16250)
         attribute_blob=null: longblob
         """
 
@@ -149,4 +149,27 @@ class ProjectSession(dj.Manual):
     definition = """
     -> Project
     -> Session
+    """
+
+
+# ---- Experiment Protocols ----
+
+
+@schema
+class ExperimentProtocol(dj.Lookup):
+    definition = """
+    protocol_number: int
+    ---
+    protocol_name: varchar(64)
+    """
+
+    contents = [(153, "FLOW_PARSING_CI_HYBRID")]
+
+
+@schema
+class SessionProtocol(dj.Manual):
+    definition = """
+    -> Session
+    ---
+    -> ExperimentProtocol
     """
